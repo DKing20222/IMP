@@ -6,8 +6,8 @@
 #include <driver/pulse_cnt.h>
 #include <esp_log.h>
 
-#define ROTARY_ENCODER_PCNT_HIGH_LIMIT 100
-#define ROTARY_ENCODER_PCNT_LOW_LIMIT  -100
+#define ROTARY_ENCODER_PCNT_HIGH_LIMIT 5
+#define ROTARY_ENCODER_PCNT_LOW_LIMIT  -5
 
 typedef struct {
     gpio_num_t gpio_a;
@@ -18,6 +18,7 @@ typedef struct {
 
 esp_err_t rotary_encoder_init(rotary_encoder_t *encoder, int step_size);
 esp_err_t rotary_encoder_get_count(const rotary_encoder_t *encoder, int *count);
+
 
 
 #endif // ROTARY_ENCODER_H

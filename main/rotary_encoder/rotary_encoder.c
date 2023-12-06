@@ -10,8 +10,8 @@ esp_err_t rotary_encoder_init(rotary_encoder_t *encoder, int step_size) {
 
     // PCNT unit configuration
     pcnt_unit_config_t unit_config = {
-        .high_limit = ROTARY_ENCODER_PCNT_HIGH_LIMIT,
-        .low_limit = ROTARY_ENCODER_PCNT_LOW_LIMIT,
+        .high_limit = step_size * ROTARY_ENCODER_PCNT_HIGH_LIMIT,
+        .low_limit = step_size * ROTARY_ENCODER_PCNT_LOW_LIMIT,
     };
     ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, &(encoder->pcnt_unit)));
 
@@ -47,6 +47,7 @@ esp_err_t rotary_encoder_init(rotary_encoder_t *encoder, int step_size) {
 
     return ESP_OK;
 }
+
 
 esp_err_t rotary_encoder_get_count(const rotary_encoder_t *encoder, int *count) {
     int raw_count;
