@@ -2,15 +2,13 @@
 
 static const char *TAG = "ROTARY_ENCODER";
 
-esp_err_t rotary_encoder_init(rotary_encoder_t *encoder, int step_size) {
+esp_err_t rotary_encoder_init(rotary_encoder_t *encoder) {
     ESP_LOGI(TAG, "Initializing rotary encoder");
-
-    encoder->step_size = step_size;
 
     // PCNT unit configuration
     pcnt_unit_config_t unit_config = {
-        .high_limit = step_size * ROTARY_ENCODER_PCNT_HIGH_LIMIT,
-        .low_limit = step_size * ROTARY_ENCODER_PCNT_LOW_LIMIT,
+        .high_limit = encoder->step_size * encoder->range,
+        .low_limit = encoder->step_size * (-encoder->range),
     };
     ESP_ERROR_CHECK(pcnt_new_unit(&unit_config, &(encoder->pcnt_unit)));
 
@@ -54,8 +52,11 @@ esp_err_t rotary_encoder_get_count(const rotary_encoder_t *encoder, int *count) 
     if (err != ESP_OK) {
         return err;
     }
+    if (raw_count < 0) {
+        raw_count = -raw_count;
+    }
 
-    *count = raw_count / encoder->step_size;
+    *count = abs(raw_count / encoder->step_size);
     return ESP_OK;
 }
 
