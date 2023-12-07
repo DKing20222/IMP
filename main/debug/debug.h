@@ -10,11 +10,7 @@
 #include <driver/adc.h>
 #include <esp_log.h>
 
-typedef enum {
-    PULL_NONE = 0,
-    PULL_UP,
-    PULL_DOWN
-} pull_mode_t;
+#include "../types.h"
 
 typedef struct {
     gpio_num_t pin;

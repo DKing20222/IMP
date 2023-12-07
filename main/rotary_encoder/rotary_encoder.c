@@ -1,5 +1,4 @@
 #include "rotary_encoder.h"
-#include "esp_log.h"
 
 static const char *TAG = "ROTARY_ENCODER";
 
@@ -57,5 +56,25 @@ esp_err_t rotary_encoder_get_count(const rotary_encoder_t *encoder, int *count) 
     }
 
     *count = raw_count / encoder->step_size;
+    return ESP_OK;
+}
+
+esp_err_t rotary_encoder_setup_button_isr(rotary_encoder_t *encoder, gpio_isr_t isr_handler, pull_mode_t pull_mode, gpio_int_type_t edge_type) {
+    ESP_LOGI(TAG, "Setting up button ISR");
+    gpio_install_isr_service(0);
+
+    // Configure the GPIO pin for the button as input
+    gpio_config_t io_conf = {
+        .pin_bit_mask = (1ULL << encoder->gpio_btn),
+        .mode = GPIO_MODE_INPUT,
+        .pull_up_en = (pull_mode == PULL_UP) ? 1 : 0,
+        .pull_down_en = (pull_mode == PULL_DOWN) ? 1 : 0,
+        .intr_type = edge_type
+    };
+    gpio_config(&io_conf);
+
+    // Attach the ISR handler to the GPIO pin
+    gpio_isr_handler_add(encoder->gpio_btn, isr_handler, (void *) encoder);
+
     return ESP_OK;
 }
