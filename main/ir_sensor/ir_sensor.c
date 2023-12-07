@@ -17,6 +17,9 @@ ir_sensor_t ir_init(gpio_num_t pin, pull_mode_t pull_mode) {
 }
 
 bool ir_sensor_is_triggered(ir_sensor_t sensor) {
-    return gpio_get_level(sensor.pin) == (sensor.pull_mode == PULL_UP) ? 0 : 1;
+    if (sensor.pull_mode == PULL_UP) {
+        return gpio_get_level(sensor.pin) == 0;   
+    }
+    return gpio_get_level(sensor.pin) == 1;
 }
 

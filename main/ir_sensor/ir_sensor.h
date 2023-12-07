@@ -11,4 +11,5 @@ typedef struct {
 } ir_sensor_t;
 
 ir_sensor_t ir_init(gpio_num_t pin, pull_mode_t pull_mode);
+bool ir_sensor_is_triggered(ir_sensor_t sensor);
 #endif
