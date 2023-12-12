@@ -70,7 +70,7 @@ void led_strip_manager_display(led_strip_t led_strip, int num)
     vTaskDelay(pdMS_TO_TICKS(10));
 }
 
-void led_strip_manager_serve(led_strip_t led_strip, int *num)
+void led_strip_manager_serve(led_strip_t led_strip, int num)
 {
     // Flash the first LED 3 times
     for (int i = 0; i < 3; i++)
@@ -84,8 +84,7 @@ void led_strip_manager_serve(led_strip_t led_strip, int *num)
         vTaskDelay(pdMS_TO_TICKS(50));
     }
     led_strip_manager_reset_led(led_strip);
-    (*num)--;
-    led_strip_manager_display(led_strip, *num);
+    led_strip_manager_display(led_strip, num);
 }
 
 void led_strip_manager_reset_led(led_strip_t led_strip)

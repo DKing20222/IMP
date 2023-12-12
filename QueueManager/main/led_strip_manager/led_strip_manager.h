@@ -33,7 +33,7 @@ void led_strip_manager_start(led_strip_t led_strip);
 void led_strip_manager_confirm(led_strip_t led_strip);
 
 void led_strip_manager_display(led_strip_t led_strip, int num);
-void led_strip_manager_serve(led_strip_t led_strip, int *num);
+void led_strip_manager_serve(led_strip_t led_strip, int num);
 
 void led_strip_manager_reset_led(led_strip_t led_strip);
 

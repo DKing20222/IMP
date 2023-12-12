@@ -1,28 +1,4 @@
-#include <stdio.h>
-#include <freertos/FreeRTOS.h>
-#include <freertos/task.h>
-#include <freertos/semphr.h>
-#include <esp_log.h>
-
-#include "rotary_encoder/rotary_encoder.h"
-#include "led_strip_manager/led_strip_manager.h"
-
-#define GPIO_LED 12
-#define LED_NUM 60
-
-#define GPIO_ROTARY_CLK 25
-#define GPIO_ROTARY_DT 26
-#define GPIO_ROTARY_BTN 27
-
-#define GPIO_IR_SENSOR 14
-
-typedef enum
-{
-    START,
-    SET_EMPLOYEE,
-    SET_CUSTOMER,
-    SERVE
-} stage_t;
+#include "main.h"
 
 led_strip_t led_strip;
 
@@ -52,6 +28,7 @@ static void IRAM_ATTR isr_handler(void *arg)
 
 void button_task(void *arg)
 {
+    ESP_LOGI("START", "Setup button task");
     while (1)
     {
         if (xSemaphoreTake(rotary_btn_semaphore, portMAX_DELAY))
@@ -79,16 +56,17 @@ void button_task(void *arg)
 
 void rotary_encoder_task(void *arg)
 {
+    ESP_LOGI("START", "Setup rotary encoder task");
     while (1)
     {
         switch (stage)
         {
         case SET_EMPLOYEE:
-            rotary_encoder_get_count(&encoder, employees);
+            rotary_encoder_get_count(&encoder, &employees);
             break;
 
         case SET_CUSTOMER:
-            rotary_encoder_get_count(&encoder, customers);
+            rotary_encoder_get_count(&encoder, &customers);
             break;
 
         default:
@@ -100,6 +78,7 @@ void rotary_encoder_task(void *arg)
 
 void led_task(void *arg)
 {
+    ESP_LOGI("START", "Setup led task");
     while (1)
     {
         switch (stage)
@@ -115,7 +94,7 @@ void led_task(void *arg)
             break;
         case SERVE:
             xSemaphoreTake(led_semaphore, portMAX_DELAY);
-            led_strip_manager_serve(led_strip, &customers);
+            led_strip_manager_serve(led_strip, customers);
             xSemaphoreGive(led_semaphore);
             break;
         }
@@ -125,6 +104,7 @@ void led_task(void *arg)
 
 void employee_task(void *arg)
 {
+    ESP_LOGI("START", "Setup employee task %d", (int)arg);
     int employee_id = (int)arg;
     while (1)
     {
@@ -132,10 +112,15 @@ void employee_task(void *arg)
         {
             xSemaphoreTake(semaphore, portMAX_DELAY);
             customers--;
-            int serveTime = rand() % 900 + 100;
+            int serveTime =  1000;
             vTaskDelay(pdMS_TO_TICKS(serveTime));
             ESP_LOGI("Employee", "Employee %d served a customer. Remaining: %d", employee_id, customers);
             xSemaphoreGive(semaphore);
+        }
+        else
+        {
+            ESP_LOGI("Employee", "Employee %d ritually leaving", employee_id);
+            vTaskDelete(NULL);
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
@@ -143,16 +128,23 @@ void employee_task(void *arg)
 
 void setup_employee_tasks(int employee_count)
 {
+    ESP_LOGI("START", "Setup employee tasks");
+    semaphore = xSemaphoreCreateCounting(employees, employees);
+    if (semaphore == NULL)
+    {
+        ESP_LOGE("Semaphore", "Failed to create semaphore");
+    }
+
     for (int i = 0; i < employee_count; i++)
     {
-        xTaskCreate(employee_task, "Employee_Task", 512, (void *)i, 1, NULL);
+        xTaskCreate(employee_task, "Employee_Task", 2048, (void *)i, 1, NULL);
     }
 }
 
 void setup_process()
 {
     ESP_LOGI("START", "Semaphore config");
-    semaphore = xSemaphoreCreateCounting(employees, 0);
+    semaphore = xSemaphoreCreateMutex();
     if (semaphore == NULL)
     {
         ESP_LOGE("Semaphore", "Failed to create semaphore");
@@ -163,7 +155,6 @@ void setup_process()
     {
         ESP_LOGE("LED Semaphore", "Failed to create semaphore");
     }
-    
 
     ESP_LOGI("START", "Setup tasks");
     xTaskCreate(rotary_encoder_task, "rotary_encoder_task", 2048, NULL, 1, NULL);
