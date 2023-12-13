@@ -20,7 +20,6 @@
 
 // Stage enum
 typedef enum {
-    START,
     SET_EMPLOYEE,
     SET_CUSTOMER,
     SERVE

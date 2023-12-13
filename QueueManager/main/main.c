@@ -17,7 +17,7 @@ SemaphoreHandle_t semaphore = NULL;
 
 volatile int employees = 0;
 volatile int customers = 0;
-volatile stage_t stage = START;
+volatile stage_t stage = SET_EMPLOYEE;
 
 static void IRAM_ATTR isr_handler(void *arg)
 {
@@ -79,13 +79,11 @@ void rotary_encoder_task(void *arg)
 void led_task(void *arg)
 {
     ESP_LOGI("START", "Setup led task");
+    int oldCustomers = customers;
     while (1)
     {
         switch (stage)
         {
-        case START:
-            led_strip_manager_start(led_strip);
-            break;
         case SET_EMPLOYEE:
             led_strip_manager_display(led_strip, employees);
             break;
@@ -94,7 +92,11 @@ void led_task(void *arg)
             break;
         case SERVE:
             xSemaphoreTake(led_semaphore, portMAX_DELAY);
-            led_strip_manager_serve(led_strip, customers);
+            if (oldCustomers != customers)
+            {
+                led_strip_manager_serve(led_strip, customers);
+                oldCustomers = customers;
+            }
             xSemaphoreGive(led_semaphore);
             break;
         }
@@ -108,19 +110,22 @@ void employee_task(void *arg)
     int employee_id = (int)arg;
     while (1)
     {
-        if (customers > 0)
+        if (stage == SERVE)
         {
-            xSemaphoreTake(semaphore, portMAX_DELAY);
-            customers--;
-            int serveTime =  1000;
-            vTaskDelay(pdMS_TO_TICKS(serveTime));
-            ESP_LOGI("Employee", "Employee %d served a customer. Remaining: %d", employee_id, customers);
-            xSemaphoreGive(semaphore);
-        }
-        else
-        {
-            ESP_LOGI("Employee", "Employee %d ritually leaving", employee_id);
-            vTaskDelete(NULL);
+            if (customers > 0)
+            {
+                xSemaphoreTake(semaphore, portMAX_DELAY);
+                ESP_LOGI("Employee", "Employee %d served a customer %d", employee_id, customers);
+                customers--;
+                int serveTime = rand() % 2000 + 200*employee_id;
+                vTaskDelay(pdMS_TO_TICKS(serveTime));
+                xSemaphoreGive(semaphore);
+            }
+            else
+            {
+                ESP_LOGI("Employee", "Employee %d leaving, number of customers remaining: %d", employee_id, customers);
+                vTaskDelete(NULL);
+            }
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
