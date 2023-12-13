@@ -5,6 +5,8 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include <freertos/semphr.h>
+#include <esp_random.h>
+#include <esp_system.h>
 #include <esp_log.h>
 
 #include "rotary_encoder/rotary_encoder.h"

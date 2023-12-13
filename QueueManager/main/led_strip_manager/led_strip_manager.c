@@ -25,29 +25,6 @@ led_strip_t led_strip_manager_init(gpio_num_t pin, uint32_t led_num)
     return strip;
 }
 
-void led_strip_manager_start(led_strip_t led_strip)
-{
-    for (int i = 0; i < led_strip.led_num; i++)
-    {
-        led_strip_set_pixel_hsv(led_strip.led_strip, i, i * 100 / 255, 255, 255);
-        led_strip_refresh(led_strip.led_strip);
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
-    led_strip_manager_reset_led(led_strip);
-}
-
-void led_strip_manager_confirm(led_strip_t led_strip)
-{
-    for (int i = 0; i < led_strip.led_num; i++)
-    {
-        led_strip_set_pixel_hsv(led_strip.led_strip, i, 100, 255, 255);
-    }
-    led_strip_refresh(led_strip.led_strip);
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    led_strip_manager_reset_led(led_strip);
-}
-
-
 void led_strip_manager_display(led_strip_t led_strip, int num)
 {
     led_strip_manager_reset_led(led_strip);
@@ -70,21 +47,19 @@ void led_strip_manager_display(led_strip_t led_strip, int num)
     vTaskDelay(pdMS_TO_TICKS(10));
 }
 
-void led_strip_manager_serve(led_strip_t led_strip, int num)
+void led_strip_manager_serve(led_strip_t led_strip, int employees, int customers)
 {
-    // Flash the first LED 3 times
-    for (int i = 0; i < 3; i++)
-    {
-        led_strip_set_pixel_hsv(led_strip.led_strip, 0, 0, 0, 0); // Turn off the first LED
-        led_strip_refresh(led_strip.led_strip);
-        vTaskDelay(pdMS_TO_TICKS(50));
+    // Flash the LED for each employee serving
+    led_strip_set_pixel_hsv(led_strip.led_strip, 0, 0, 0, 0); // Turn off the first LED
+    led_strip_refresh(led_strip.led_strip);
+    vTaskDelay(pdMS_TO_TICKS(50));
 
-        led_strip_set_pixel_hsv(led_strip.led_strip, 0, 100, 255, 255); // Turn on the first LED
-        led_strip_refresh(led_strip.led_strip);
-        vTaskDelay(pdMS_TO_TICKS(50));
-    }
+    led_strip_set_pixel_hsv(led_strip.led_strip, 0, 100, 255, 255); // Turn on the first LED
+    led_strip_refresh(led_strip.led_strip);
+    vTaskDelay(pdMS_TO_TICKS(50));
+
     led_strip_manager_reset_led(led_strip);
-    led_strip_manager_display(led_strip, num);
+    led_strip_manager_display(led_strip, customers);
 }
 
 void led_strip_manager_reset_led(led_strip_t led_strip)

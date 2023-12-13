@@ -2,7 +2,6 @@
 
 led_strip_t led_strip;
 
-SemaphoreHandle_t led_semaphore;
 
 rotary_encoder_t encoder = {
     .gpio_a = GPIO_ROTARY_CLK,
@@ -12,12 +11,14 @@ rotary_encoder_t encoder = {
     .range = LED_NUM};
 
 SemaphoreHandle_t rotary_btn_semaphore;
-
-SemaphoreHandle_t semaphore = NULL;
+SemaphoreHandle_t led_semaphore;
+SemaphoreHandle_t semaphore;
 
 volatile int employees = 0;
 volatile int customers = 0;
 volatile stage_t stage = SET_EMPLOYEE;
+
+bool running = false;
 
 static void IRAM_ATTR isr_handler(void *arg)
 {
@@ -38,12 +39,15 @@ void button_task(void *arg)
             {
                 if (stage == SET_EMPLOYEE)
                 {
+                    running = true;
                     setup_employee_tasks(employees);
                 }
+
                 if (stage < SERVE)
                 {
                     stage++;
                 }
+                
                 while (gpio_get_level(GPIO_ROTARY_BTN) == 0)
                 {
                     vTaskDelay(pdMS_TO_TICKS(10));
@@ -59,6 +63,7 @@ void rotary_encoder_task(void *arg)
     ESP_LOGI("START", "Setup rotary encoder task");
     while (1)
     {
+        
         switch (stage)
         {
         case SET_EMPLOYEE:
@@ -72,6 +77,7 @@ void rotary_encoder_task(void *arg)
         default:
             break;
         }
+        
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
@@ -79,9 +85,9 @@ void rotary_encoder_task(void *arg)
 void led_task(void *arg)
 {
     ESP_LOGI("START", "Setup led task");
-    int oldCustomers = customers;
     while (1)
     {
+        
         switch (stage)
         {
         case SET_EMPLOYEE:
@@ -92,14 +98,18 @@ void led_task(void *arg)
             break;
         case SERVE:
             xSemaphoreTake(led_semaphore, portMAX_DELAY);
-            if (oldCustomers != customers)
+            if (customers > 0)
             {
-                led_strip_manager_serve(led_strip, customers);
-                oldCustomers = customers;
+                led_strip_manager_serve(led_strip, employees, customers);
+            }
+            else
+            {
+                led_strip_manager_reset_led(led_strip);
             }
             xSemaphoreGive(led_semaphore);
             break;
         }
+        
         vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
@@ -110,22 +120,27 @@ void employee_task(void *arg)
     int employee_id = (int)arg;
     while (1)
     {
+        
         if (stage == SERVE)
         {
+            xSemaphoreTake(semaphore, portMAX_DELAY);
             if (customers > 0)
             {
-                xSemaphoreTake(semaphore, portMAX_DELAY);
-                ESP_LOGI("Employee", "Employee %d served a customer %d", employee_id, customers);
+                xSemaphoreTake(led_semaphore, portMAX_DELAY);
                 customers--;
-                int serveTime = rand() % 2000 + 200*employee_id;
-                vTaskDelay(pdMS_TO_TICKS(serveTime));
-                xSemaphoreGive(semaphore);
+                ESP_LOGI("Employee", "Employee %d served a customer, remaining %d", employee_id, customers);
+                xSemaphoreGive(led_semaphore);
             }
             else
             {
+                employees--;
                 ESP_LOGI("Employee", "Employee %d leaving, number of customers remaining: %d", employee_id, customers);
+                xSemaphoreGive(semaphore);
                 vTaskDelete(NULL);
             }
+            xSemaphoreGive(semaphore);
+            int serveTime = (esp_random() % 5000) + 100;
+            vTaskDelay(pdMS_TO_TICKS(serveTime));
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
@@ -134,11 +149,6 @@ void employee_task(void *arg)
 void setup_employee_tasks(int employee_count)
 {
     ESP_LOGI("START", "Setup employee tasks");
-    semaphore = xSemaphoreCreateCounting(employees, employees);
-    if (semaphore == NULL)
-    {
-        ESP_LOGE("Semaphore", "Failed to create semaphore");
-    }
 
     for (int i = 0; i < employee_count; i++)
     {
@@ -164,7 +174,7 @@ void setup_process()
     ESP_LOGI("START", "Setup tasks");
     xTaskCreate(rotary_encoder_task, "rotary_encoder_task", 2048, NULL, 1, NULL);
     xTaskCreate(button_task, "button_task", 2048, NULL, 1, NULL);
-    xTaskCreate(led_task, "led_task", 2048, NULL, 1, NULL);
+    xTaskCreate(led_task, "led_task", 4096, NULL, 1, NULL);
 }
 
 void app_main(void)
@@ -187,4 +197,17 @@ void app_main(void)
 
     ESP_LOGI("START", "Main part");
     setup_process();
+    while(1)
+    {
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        if (running)
+        {if ((customers == 0) && (employees == 0))
+        {
+            running = false;
+            stage = SET_EMPLOYEE;
+            ESP_LOGI("END", "All customers served and employees left");
+        }}
+        xSemaphoreGive(semaphore);
+        vTaskDelay(pdMS_TO_TICKS(10));
+    }
 }
