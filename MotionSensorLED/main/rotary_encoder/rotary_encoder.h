@@ -19,7 +19,7 @@ typedef struct {
 } rotary_encoder_t;
 
 esp_err_t rotary_encoder_init(rotary_encoder_t *encoder);
-esp_err_t rotary_encoder_get_count(const rotary_encoder_t *encoder, int *count);
+esp_err_t rotary_encoder_get_count(rotary_encoder_t *encoder, int *count);
 esp_err_t rotary_encoder_setup_button_isr(rotary_encoder_t *encoder, gpio_isr_t isr_handler, pull_mode_t pull_mode, gpio_int_type_t edge_type);
 
 #endif

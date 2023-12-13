@@ -46,7 +46,7 @@ esp_err_t rotary_encoder_init(rotary_encoder_t *encoder) {
 }
 
 
-esp_err_t rotary_encoder_get_count(const rotary_encoder_t *encoder, volatile int *count) {
+esp_err_t rotary_encoder_get_count(rotary_encoder_t *encoder, volatile int *count) {
     int raw_count;
     esp_err_t err = pcnt_unit_get_count(encoder->pcnt_unit, &raw_count);
     if (err != ESP_OK) {
